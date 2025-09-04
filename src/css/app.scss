@@ -1,0 +1,82 @@
+// app global css in SCSS form
+// app global css in SCSS form
+@font-face {
+    font-family: Poppins;
+    src: url(./Font/Poppins.ttf);
+}
+* {
+    font-family: 'Poppins';
+    letter-spacing: .3mm;
+}
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+body {
+    margin: 0;
+    background-color: #FFFFFF;
+}
+
+.custom-border
+{
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.radius-xs
+{
+    border-radius: 10px;
+}
+
+.radius-sm
+{
+    border-radius: 15px;
+}
+
+.radius-md
+{
+    border-radius: 20px;
+}
+
+.radius-lg
+{
+    border-radius: 25px;
+}
+
+.radius-xl
+{
+    border-radius: 30px;
+}
+
+.dialog-action .q-dialog__inner
+{
+    padding: 0px;
+}
+
+.dialog-action .card-action
+{
+    width: 650px;
+    max-width: 80vw;
+}
+
+.q-field
+{
+    padding: 0 !important;
+}
+
+.q-field__bottom
+{
+    display: none !important;
+}
+
+//input
+.q-field--outlined .q-field__control:after,
+.q-field--outlined.q-field--highlighted .q-field__control:after
+{
+    border-width: 1px !important;
+}
+
+.swal2-container
+{
+    z-index: 6001;
+}

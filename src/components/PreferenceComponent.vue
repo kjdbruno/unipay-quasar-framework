@@ -3,9 +3,13 @@
         <div class="q-gutter-md row q-col-gutter-md">
             <q-card v-for="(value, index) in navigations" :key="index" @click="PreferenceStore.component = value.component" class="card card-hover-animate custom-border col-xs-12 col-sm-4 col-md-3 col-lg-3 flex flex-center q-pa-md no-shadow cursor-pointer radius-xs">
                 <q-card-section class="text-center">
-                    <div class="text-h5 text-uppercase">{{ value.label }}</div>
-                    <div class="text-caption text-capitalize">preference</div>
+                    <div class="text-subtitle1 text-uppercase">{{ value.label }}</div>
                 </q-card-section>
+                <q-card-section class="text-center">
+                        <div class="text-caption text-grey text-uppercase">
+                            {{ value.description }}
+                        </div>
+                    </q-card-section>
             </q-card>
         </div> 
     </div>
@@ -18,63 +22,78 @@ const PreferenceStore = usePreferenceStore();
 
 const navigations = ref([
     {
-        label: 'System',
-        component: 'SystemComponent'
-    },
-    {
-        label: 'User',
+        label: 'User management',
+        description: 'preference',
         component: 'UserComponent'
     },
     {
-        label: 'Office',
+        label: 'System management',
+        description: 'preference',
+        component: 'SystemComponent'
+    },
+    {
+        label: 'Office management',
+        description: 'preference',
         component: 'OfficeComponent'
     },
     {
-        label: 'Account',
+        label: 'Account management',
+        description: 'preference',
         component: 'AccountComponent'
     },
     {
-        label: 'Fund',
+        label: 'Fund management',
+        description: 'preference',
         component: 'FundComponent'
     },
     {
-        label: 'Payment Type',
+        label: 'Payment Type management',
+        description: 'preference',
         component: 'PaymentTypeComponent'
     },
     {
-        label: 'Payment Receipt',
+        label: 'Payment Receipt management',
+        description: 'preference',
         component: 'PaymentReceiptComponent'
     },
     {
-        label: 'Payment Partner',
+        label: 'Payment Partner management',
+        description: 'preference',
         component: 'PaymentPartnerComponent'
     },
     {
-        label: 'Payment Channel',
+        label: 'Payment Channel management',
+        description: 'preference',
         component: 'PaymentChannelComponent'
     },
     {
-        label: 'Service',
+        label: 'Service management',
+        description: 'preference',
         component: 'ServiceComponent'
     },
     {
-        label: 'Item',
+        label: 'Item management',
+        description: 'preference',
         component: 'ItemComponent'
     },
     {
-        label: 'Type Form Setting',
-        component: 'TypeFormSettingComponent'
-    },
-    {
-        label: 'Service Item Setting',
-        component: 'ServiceItemSettingComponent'
-    },
-    {
-        label: 'Window',
+        label: 'Window management',
+        description: 'preference',
         component: 'WindowComponent'
     },
     {
-        label: 'User Window Setting',
+        label: 'Type & Form',
+        description: 'setting',
+        component: 'TypeFormSettingComponent'
+    },
+    {
+        label: 'Service & Item',
+        description: 'setting',
+        component: 'ServiceItemSettingComponent'
+    },
+    {
+        label: 'User & Window',
+        description: 'setting',
         component: 'UserWindowSettingComponent'
     },
 ]);

@@ -1,16 +1,23 @@
 <template>
-    <div>
-        <div class="q-gutter-md row q-col-gutter-md">
-            <q-card v-for="(tile, index) in tiles" :key="index" class="card card-hover-animate col-xs-12 col-sm-4 col-md-3 col-lg-3 flex flex-center q-pa-md no-shadow cursor-pointer" square :class="tile.class" @click="handleClick(tile)">
-                <q-card-section class="text-center" v-if="!tile.isIcon">
-                    <div class="text-h5 text-uppercase">{{ tile.title }}</div>
-                    <div class="text-caption">{{ tile.description }}</div>
-                </q-card-section>
-                <q-card-section class="text-center" v-if="tile.isIcon">
-                    <q-icon :name="tile.icon" size="8em">
-                    </q-icon>
-                </q-card-section>
-            </q-card>
+    <div class="q-mt-md">
+        <div class="row q-col-gutter-md">
+            <div class="col-8">
+                <q-card class="q-pa-md no-shadow custom-border">
+                    
+                </q-card>
+            </div>
+            <div class="col-4">
+                <q-card class="no-shadow custom-border q-mb-xs">
+                    <q-card-section>
+                        <div class="text-h6 text-uppercase">activities</div>
+                    </q-card-section>
+                </q-card>
+                <q-card class="no-shadow custom-border q-mb-xs">
+                    <q-card-section>
+                        <div class="text-h6 text-uppercase">activities</div>
+                    </q-card-section>
+                </q-card>
+            </div>
         </div>
     </div>
 </template>

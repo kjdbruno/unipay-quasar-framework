@@ -39,6 +39,21 @@ const routes = [
     ]
   },
   {
+    path: '/billing',
+    component: () => import('layouts/MainLayout.vue'),
+    beforeEnter: (to, from, next) => {
+      const auth = useAuthStore();
+      if (!auth.isAuthenticated) {
+        next('/')
+      } else {
+        next()
+      }
+    },
+    children: [
+      { path: '', component: () => import('src/pages/BillingPage.vue'), name: 'billing' }
+    ]
+  },
+  {
     path: '/receipt',
     component: () => import('layouts/MainLayout.vue'),
     beforeEnter: (to, from, next) => {

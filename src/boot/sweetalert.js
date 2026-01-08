@@ -7,9 +7,9 @@ import 'sweetalert2/src/sweetalert2.scss';
 // Define your Toast mixin
 const Toast = Swal.mixin({
     toast: true,
-    position: 'bottom-end',
+    position: 'top-end',
     showConfirmButton: false,
-    timer: 5000,
+    timer: 3000,
     timerProgressBar: true,
     didOpen: (toast) => {
         toast.onmouseenter = Swal.stopTimer;

@@ -30,6 +30,9 @@
 
         <q-drawer show-if-above v-model="leftDrawerOpen" side="left" :width="width" v-if="authStore.isAuthenticated && router.currentRoute.value.name != 'login'">
             <div class="full-height bg-accent q-pa-xl">
+                <div class="q-pa-md">
+                    <img :src="logo" width="150" />
+                </div>
                 <q-list>
                     <q-item clickable v-ripple class="q-pa-lg radius-xs" v-for="item in menuItems" :key="item.label" :to="item.to" >
                         <q-item-section avatar>
@@ -42,10 +45,11 @@
             <div class="absolute-bottom">
                 <div class="text-center q-pa-lg">
                     <q-avatar class="q-mb-sm">
-                        <img :src="authStore.user.avatar">
+                        <img :src="formatPhoto(authStore.user)">
                     </q-avatar>
                     <div class="text-weight-bold text-uppercase text-body1">{{ authStore.user.firstname }}&nbsp;{{ authStore.user.lastname }}</div>
                     <div class="text-caption text-grey">{{ authStore.user.username }}</div>
+                    <q-btn color="primary" unelevated size="xs" class="q-mt-md" @click="authStore.logout()">sign out</q-btn>
                 </div>
             </div>
         </q-drawer>
@@ -69,7 +73,7 @@ import { usePreferenceStore } from 'src/stores/preference-store';
 import moment from 'moment';
 import { socket } from 'src/boot/socket';
 
-import logo from 'src/assets/logo.png';
+import logo from 'src/assets/unipay.png';
 import message from 'src/assets/message.png';
 import notification from 'src/assets/notification.png';
 import homeP from 'src/assets/homeP.png';
@@ -82,10 +86,10 @@ import remittanceP from 'src/assets/remittanceP.png';
 import remittanceS from 'src/assets/remittanceS.png';
 import preferenceP from 'src/assets/preferenceP.png';
 import preferenceS from 'src/assets/preferenceS.png';
-import analyticP from 'src/assets/analyticP.png';
-import analyticS from 'src/assets/analyticS.png';
 import reportP from 'src/assets/reportP.png';
 import reportS from 'src/assets/reportS.png';
+import billingP from 'src/assets/billingP.png';
+import billingS from 'src/assets/billingS.png';
 
 const indexStore = useIndexStore();
 const router = useRouter();
@@ -130,15 +134,19 @@ onMounted(() => {
 // example menuItems format update
 const menuItems = [
     { iconPrimary: homeP, iconSecondary: homeS, label: 'home', to: '/home' },
+    { iconPrimary: billingP, iconSecondary: billingS, label: 'billing', to: '/billing' },
     { iconPrimary: paymentP, iconSecondary: paymentS, label: 'payment', to: '/payment' },
     { iconPrimary: receiptP, iconSecondary: receiptS, label: 'receipt', to: '/receipt' },
     { iconPrimary: remittanceP, iconSecondary: remittanceS, label: 'remittance', to: '/remittance' },
     { iconPrimary: preferenceP, iconSecondary: preferenceS, label: 'preference', to: '/preference' },
-    { iconPrimary: analyticP, iconSecondary: analyticS, label: 'analytic', to: '/analytic' },
     { iconPrimary: reportP, iconSecondary: reportS, label: 'report', to: '/report' },
 ]
 
 // helper function to check if current route matches item label
 const isActive = (label) => route.name?.toLowerCase() === label.toLowerCase()
+
+const formatPhoto = (user) => {
+    return `${process.env.VUE_APP_BACKEND_URL}${user.avatar}`
+}
 
 </script>

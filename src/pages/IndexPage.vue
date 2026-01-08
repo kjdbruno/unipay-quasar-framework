@@ -1,9 +1,9 @@
 <template>
     <q-page class="full-height flex flex-center">
         <q-card class="justify-center items-center no-shadow q-pa-xl custom-border radius-md" style="width: 600px;" >
-            <q-card-section>
-                <div class="text-h3 text-capitalize text-dark">
-                    login
+            <q-card-section class="q-pt-none text-center">
+                <div>
+                    <img :src="logo" width="200" />
                 </div>
             </q-card-section>
             <q-card-section>
@@ -53,21 +53,12 @@
                         <q-spinner-ios size=".5em"/>
                     </template>
                 </q-btn>
-                <q-banner v-if="errors.length" class="bg-red-1 text-negative rounded-lg shadow-md banner-radius q-pa-sm q-mt-md"dense inline-actions >
-                    <q-list>
-                        <q-item>
-                            <q-item-section avatar>
-                                <q-icon name="error" color="negative"/>
-                            </q-item-section>
-                            <q-item-section>
-                                <div v-for="(dt, index) in errors" :key="index" class="text-caption">
-                                    {{ dt.msg }}
-                                </div>
-                            </q-item-section>
-                        </q-item>
-                    </q-list>
-                </q-banner>
             </q-card-section>
+            <q-card-actions align="center" class="q-pa-md">
+                <div class="text-caption text-uppercase text-grey">
+                    <div>© 2025 Unified Payment System. All Rights Reserved.</div>
+                </div>
+            </q-card-actions>
         </q-card>
     </q-page>
 </template>
@@ -90,6 +81,8 @@ import {
 import { 
     useAuthStore 
 } from 'src/stores/auth-store';
+
+import logo from 'src/assets/unipaylogo.png';
 
 const $q = useQuasar();
 const router = useRouter();

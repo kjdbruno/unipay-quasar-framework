@@ -1,174 +1,227 @@
 <template>
     <div>
-        <q-card class="no-shadow">
-            <q-card-section>
-                <div class="row items-center no-wrap justify-between">
-                    <div class="row items-center">
-                        <q-btn flat round dense icon="arrow_back" size="sm" class="text-dark" @click="PreferenceStore.component = 'PreferenceComponent'"/>
-                        <span class="text-h5 text-dark text-uppercase q-ml-sm">user management</span>
-                    </div>
-                    <div class="col-auto">
-                        <q-input outlined dense debounce="300" v-model="filter" placeholder="Search...">
-                            <template v-slot:before>
-                                <q-btn :disable="page <= 1" @click="PreviousPage" unelevated size="xs" round color="primary" icon="arrow_back"/>
-                                <q-btn unelevated outline size="sm" round color="primary" :label="meta.CurrentPage"/>
-                                <q-btn :disable="page >= meta.TotalPages" @click="NextPage" unelevated size="xs" round color="primary" icon="arrow_forward"/>
-                            </template>
-                            <template v-slot:prepend>
-                                <q-icon name="search" style="font-size: 1rem;" />
-                            </template>
-                            <template v-slot:after>
-                                <q-btn unelevated size="md" color="primary" label="new" @click="() => { modal = true; isEdit = false; ResetForm() }"/>
-                            </template>
-                        </q-input>
-                    </div>
-                </div>
-            </q-card-section>
-        </q-card>
         <div class="q-mt-md">
-            <transition-group name="fade-slide" tag="div" class="q-gutter-md row q-col-gutter-md">
-                <q-card v-for="(v, index) in filteredData" :key="index" class="card card-hover-animate custom-border col-xs-12 col-sm-4 col-md-3 col-lg-3 flex flex-center q-pa-md no-shadow cursor-pointer radius-xs">
-                    <q-card-section class="text-center">
-                        <div class="q-mb-sm">
-                            <q-avatar>
-                                <img :src="v.avatar" />
-                            </q-avatar>
-                        </div>
-                        <div class="text-body1 text-uppercase">{{ v.firstname }}&nbsp;{{ v.lastname }}</div>
-                    </q-card-section>
-                    <q-card-section class="text-center">
-                        <div class="text-caption text-uppercase">{{ v.Role.name }}</div>
-                        <div class="text-caption text-grey">
-                            {{ v.username }}
-                        </div>
-                    </q-card-section>
-                    <div class="card-overlay absolute-full flex flex-center text-white">
-                        <div class="q-gutter-xs">
-                            <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
-                            <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
-                            <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
-                        </div>
-                    </div>
-                    <div
-                        class="absolute-top-right q-mt-sm q-mr-sm"
-                        style="width: 6px; height: 6px; border-radius: 50%;"
-                        :style="{ backgroundColor: v.isActive ? 'green' : 'red' }"
+            <div class="card-grid">
+                <div
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm cursor-pointer"
+                        @click="() => { modal = true; isEdit = false; ResetForm() }"
+                    >
+                        <q-card-section class="text-center">
+                            <q-icon name="add_circle" size="7em" class="text-grey-5" />
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="loading"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div>
+                                <q-spinner-puff size="md" />
+                            </div>
+                            <div class="text-caption text-grey text-capitalize">we're working on it</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && !users.length"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div class="text-caption text-grey text-capitalize">no data found</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && users.length"
+                    v-for="(v, index) in users"
+                    :key="`data-${v.id}`"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `${index * 120}ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
                         >
-                    </div>
-                    <q-inner-loading :showing="btnLoading">
-                        <q-spinner-oval/>
-                    </q-inner-loading>
-                </q-card>
-            </transition-group>
+                        <q-card-section class="text-center full-width">
+                            <div class="text-body1 text-uppercase">{{ formatName(v) }}</div>
+                            <div class="text-caption text-capitalize text-grey">{{ formatOffice(v) }}</div>
+                        </q-card-section>
+                        <q-card-section class="text-center full-width">
+                            <div class="text-caption text-grey">{{ formatRole(v) }}</div>
+                        </q-card-section>
+                        <div class="card-overlay absolute-full flex flex-center text-white">
+                            <div class="q-gutter-xs">
+                                <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
+                                <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
+                                <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute-top-left q-ma-sm"
+                            style="width: 7px; height: 7px; border-radius: 50%;"
+                            :class="v.isActive ? 'bg-positive' : 'bg-negative'"
+                        ></div>
+                    </q-card>
+                </div>
+            </div>
         </div>
-        <q-dialog square persistent v-model="modal" position="right" full-height class="dialog-action">
-            <q-card class="card-action column full-height">
+        <q-footer class="bg-white no-shadow q-mx-lg q-mb-md q-py-sm radius-xs text-grey">
+            <q-toolbar>
+                <q-toolbar-title class="text-caption text-uppercase">
+                    <div>© 2025 UNIPAY. All Rights Reserved.</div>
+                </q-toolbar-title>
+                <q-input outlined dense debounce="1000" v-model="filter" placeholder="Search..." @update:model-value="LoadAll">
+                    <template v-slot:before>
+                        <div class="text-caption text-uppercase">{{ `page ${meta.CurrentPage} of ${meta.TotalPages}` }}</div>
+                    </template>
+                    <template v-slot:after>
+                        <q-btn unelevated size="xs" round color="primary" icon="first_page" :disable="page <= 1" @click="FirstPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">First Page</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_back" :disable="page <= 1" @click="PreviousPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Previous</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_forward" :disable="page >= meta.TotalPages" @click="NextPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Next</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="last_page" :disable="page >= meta.TotalPages" @click="LastPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Last Page</q-tooltip>
+                        </q-btn>
+                    </template>
+                    <template v-slot:prepend>
+                        <q-icon name="search" style="font-size: 1rem;" />
+                    </template>
+                </q-input>
+            </q-toolbar>
+        </q-footer>
+        <q-dialog persistent v-model="modal" full-height>
+            <q-card class="column full-height" style="width: 75%; max-width: 100vw;">
                 <q-card-section class="row items-center q-pa-lg">
                     <div class="text-h5 text-uppercase">{{ isEdit ? 'modify user' : 'create new user' }}</div>
-                    <q-space />
-                    <q-btn icon="close" flat round dense v-close-popup />
                 </q-card-section>
                 <q-separator inset/>
-                <q-card-section class="col q-pa-lg">
-                    <q-input 
-                        v-model="firstname"
-                        outlined 
-                        label="Firstname" 
-                        :error="formErrors.firstname.type"
-                        class="q-mb-sm"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="lastname"
-                        outlined 
-                        label="Lastname" 
-                        :error="formErrors.lastname.type"
-                        class="q-mb-sm"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="username"
-                        outlined 
-                        label="Username" 
-                        :error="formErrors.username.type"
-                        class="q-mb-sm"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="password"
-                        outlined 
-                        label="Password" 
-                        :error="formErrors.password.type"
-                        :type="showPassword ? 'text' : 'password'"
-                        class="q-mb-sm"
-                    >
-                        <template v-slot:append>
-                            <q-icon :name="showPassword ? 'visibility' : 'visibility_off'" class="cursor-pointer" @click="showPassword = !showPassword" style="font-size: 1rem;" />
-                        </template>
-                    </q-input>
-                    <q-select 
-                        v-model="roleId" 
-                        emit-value 
-                        map-options 
-                        :options="filteredRoles" 
-                        label="Choose Role" 
-                        outlined
-                        use-input 
-                        fill-input 
-                        input-debounce="300" 
-                        @filter="filterRoleFn" 
-                        :error="formErrors.roleId.type"
-                        class="q-mb-sm"
-                    />
-                    <q-select 
-                        v-model="officeId" 
-                        emit-value 
-                        map-options 
-                        :options="filteredOffices" 
-                        label="Choose Office" 
-                        outlined
-                        use-input 
-                        fill-input 
-                        input-debounce="300" 
-                        @filter="filterOfficeFn" 
-                        :error="formErrors.officeId.type"
-                        class="q-mb-sm"
-                    />
-                    <q-file
-                        v-model="avatar"
-                        label="Upload Avatar"
-                        accept="image/png, image/jpeg"
-                        outlined
-                        :error="formErrors.avatar.type"
-                        class="q-mb-sm"
-                    />
+                <q-card-section class="col scroll">
+                    <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.firstname.type ? 'text-negative' : 'text-grey'">{{ formErrors.firstname.type ? formErrors.firstname.msg : 'first name' }}</div>
+                            <q-input 
+                                v-model="firstname"
+                                label="Enter First Name"
+                                outlined
+                                :error="formErrors.firstname.type"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.lastname.type ? 'text-negative' : 'text-grey'">{{ formErrors.lastname.type ? formErrors.lastname.msg : 'last name' }}</div>
+                            <q-input 
+                                v-model="lastname"
+                                label="Enter Last Name"
+                                outlined
+                                :error="formErrors.lastname.type"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.officeId.type ? 'text-negative' : 'text-grey'">{{ formErrors.officeId.type ? formErrors.officeId.msg : 'office' }}</div>
+                            <q-select 
+                                v-model="officeId" 
+                                label="Choose Office" 
+                                emit-value 
+                                map-options 
+                                :options="filteredOffices" 
+                                outlined
+                                use-input 
+                                input-debounce="300" 
+                                @filter="filterOfficeFn" 
+                                :error="formErrors.officeId.type"
+                                :hide-dropdown-icon="true"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                    </div>
+                    <div class="q-mb-md">
+                        <div class="text-caption text-uppercase" :class="formErrors.role.type ? 'text-negative' : 'text-grey'">{{ formErrors.role.type ? formErrors.role.msg : 'role' }}</div>
+                        <div class="q-gutter-sm">
+                            <q-radio v-for="(r, index) in roles" v-model="role" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" :val="r.value" :label="r.label" />
+                        </div>
+                    </div>
+                    <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.username.type ? 'text-negative' : 'text-grey'">{{ formErrors.username.type ? formErrors.username.msg : 'username' }}</div>
+                            <q-input 
+                                v-model="username"
+                                label="Enter Username"
+                                outlined
+                                :error="formErrors.username.type"
+                                no-error-icon
+                            />
+                        </div>
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.password.type ? 'text-negative' : 'text-grey'">{{ formErrors.password.type ? formErrors.password.msg : 'password' }}</div>
+                            <q-input 
+                                v-model="password"
+                                label="Enter Password"
+                                :type="showPassword ? 'text' : 'password'"
+                                outlined
+                                :error="formErrors.password.type"
+                                no-error-icon
+                            >
+                                <template v-slot:append>
+                                    <q-icon 
+                                        :name="showPassword ? 'visibility_off' : 'visibility'" 
+                                        class="cursor-pointer" 
+                                        @click="showPassword = !showPassword" 
+                                    />
+                                </template>
+                            </q-input>
+                        </div>
+                    </div>
+                    <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.file.type ? 'text-negative' : 'text-grey'">{{ formErrors.file.type ? formErrors.file.msg : 'photo' }}</div>
+                            <q-file 
+                                v-model="file"
+                                label="Upload Photo"
+                                outlined
+                                :error="formErrors.file.type"
+                                no-error-icon
+                            />
+                        </div>
+                    </div>
                 </q-card-section>
-                <q-card-section v-if="errors.length">
-                    <q-banner class="bg-red-1 text-negative rounded-lg shadow-md radius-xs q-pa-sm q-mt-md" dense inline-actions >
-                        <q-list>
-                            <q-item>
-                                <q-item-section avatar>
-                                    <q-icon name="error" color="negative"/>
-                                </q-item-section>
-                                <q-item-section>
-                                    <div v-for="(dt, index) in errors" :key="index" class="text-caption">
-                                        {{ dt.msg }}
-                                    </div>
-                                </q-item-section>
-                            </q-item>
-                        </q-list>
-                    </q-banner>
-                </q-card-section>
-                <q-card-section>
+                <q-card-actions class="q-pa-md">
                     <q-btn 
                         unelevated 
                         color="primary" 
-                        label="submit" 
-                        size="lg" 
-                        class="full-width"
+                        label="save" 
+                        class="btn"
                         @click="isEdit ? Update() : Create()"
                     />
-                </q-card-section>
+                    <q-btn 
+                        unelevated 
+                        outline
+                        color="primary" 
+                        label="discard" 
+                        class="btn"
+                        @click="() => { modal = false; }"
+                    />
+                </q-card-actions>
                 <q-inner-loading :showing="innerLoading">
                     <q-spinner-oval/>
                 </q-inner-loading>
@@ -182,186 +235,116 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { usePreferenceStore } from 'src/stores/preference-store';
 import { api } from 'src/boot/axios';
 import { Toast } from 'src/boot/sweetalert'; 
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const PreferenceStore = usePreferenceStore();
 
 const id = ref('');
 const firstname = ref('');
 const lastname = ref('');
+const officeId = ref('');
 const username = ref('');
 const password = ref('');
-const roleId = ref('');
-const officeId = ref('');
-const avatar = ref('');
+const role = ref('');
+const file = ref(null);
+
+const showPassword = ref(false);
 
 const innerLoading = ref(false);
 const btnLoading = ref(false);
-const showPassword = ref(false);
-
-const errors = ref([]);
 
 const formErrors = reactive({
     firstname: { 
-        type: null 
+        type: null, msg: '' 
     },
-    lastname: { 
-        type: null 
-    },
-    username: {
-        type: null
-    },
-    password: {
-        type: null
-    },
-    roleId: {
-        type: null
+    lastname: {
+        type: null, msg: ''
     },
     officeId: {
-        type: null
+        type: null, msg: ''
     },
-    avatar: {
-        type: null
+    username: {
+        type: null, msg: ''
+    },
+    password: {
+        type: null, msg: ''
+    },
+    role: {
+        type: null, msg: ''
+    },
+    file: {
+        type: null, msg: ''
     }
 });
 
 const formValidations = () => {
 
-    errors.value = [];
-
     let isError = false;
 
     if (!firstname.value) {
         formErrors.firstname.type = true;
-        errors.value.push({
-            type: 'field',
-            value: firstname.value,
-            msg: 'Firstname is required',
-            path: 'firstname',
-            location: 'body'
-        });
-        isError = true
-    } else {  
-        formErrors.firstname.type = null
+        formErrors.firstname.msg = 'first name is required';
+        isError = true;
+    } else {
+        formErrors.firstname.type = null;
+        formErrors.firstname.msg = '';
     }
 
     if (!lastname.value) {
         formErrors.lastname.type = true;
-        errors.value.push({
-            type: 'field',
-            value: lastname.value,
-            msg: 'Lastname is required',
-            path: 'lastname',
-            location: 'body'
-        });
-        isError = true
-    } else {
-        formErrors.lastname.type = null
-    }
-
-    if (!username.value) {
-        formErrors.username.type = true;
-        errors.value.push({
-            type: 'field',
-            value: username.value,
-            msg: 'Username is required',
-            path: 'username',
-            location: 'body'
-        });
-        isError = true
-    } else {
-        formErrors.username.type = null
-    }
-
-    if (!password.value) {
-        formErrors.password.type = true;
-        errors.value.push({
-            type: 'field',
-            value: password.value,
-            msg: 'Password is required',
-            path: 'password',
-            location: 'body'
-        });
-        isError = true
-    } else if (password.value.length < 4) {
-        formErrors.password.type = true;
-        errors.value.push({
-            type: 'field',
-            value: password.value,
-            msg: 'Password must be at least 4 characters',
-            path: 'password',
-            location: 'body'
-        });
+        formErrors.lastname.msg = 'last name is required';
         isError = true;
     } else {
-        formErrors.password.type = null
-    }
-
-    if (!roleId.value) {
-        formErrors.roleId.type = true;
-        errors.value.push({
-            type: 'field',
-            value: roleId.value,
-            msg: 'Role is required',
-            path: 'roleId',
-            location: 'body'
-        });
-        isError = true
-    } else {
-        formErrors.roleId.type = null
+        formErrors.lastname.type = null;
+        formErrors.lastname.msg = '';
     }
 
     if (!officeId.value) {
         formErrors.officeId.type = true;
-        errors.value.push({
-            type: 'field',
-            value: officeId.value,
-            msg: 'Office is required',
-            path: 'officeId',
-            location: 'body'
-        });
-        isError = true
-    } else {
-        formErrors.officeId.type = null
-    }
-
-    if (!avatar.value) {
-        formErrors.avatar.type = true;
-        errors.value.push({
-            type: 'field',
-            value: avatar.value,
-            msg: 'Avatar is required',
-            path: 'avatar',
-            location: 'body'
-        });
+        formErrors.officeId.msg = 'office is required';
         isError = true;
     } else {
-        const file = avatar.value;
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-        const maxSize = 2 * 1024 * 1024; // 2MB
+        formErrors.officeId.type = null;
+        formErrors.officeId.msg = '';
+    }
 
-        if (!allowedTypes.includes(file.type)) {
-            formErrors.avatar.type = true;
-            errors.value.push({
-                type: 'field',
-                value: file.type,
-                msg: 'Only JPG and PNG images are allowed',
-                path: 'avatar',
-                location: 'body'
-            });
-            isError = true;
-        } else if (file.size > maxSize) {
-            formErrors.avatar.type = true;
-            errors.value.push({
-                type: 'field',
-                value: file.size,
-                msg: 'File size must not exceed 2MB',
-                path: 'avatar',
-                location: 'body'
-            });
+    if (!username.value) {
+        formErrors.username.type = true;
+        formErrors.username.msg = 'username is required';
+        isError = true;
+    } else {
+        formErrors.username.type = null;
+        formErrors.username.msg = '';
+    }
+
+    if (isEdit.value === false) {
+        if (!password.value) {
+            formErrors.password.type = true;
+            formErrors.password.msg = 'password is required';
             isError = true;
         } else {
-            formErrors.avatar.type = null;
+            formErrors.password.type = null;
+            formErrors.password.msg = '';
         }
+    }
+
+    if (!role.value) {
+        formErrors.role.type = true;
+        formErrors.role.msg = 'role is required';
+        isError = true;
+    } else {
+        formErrors.role.type = null;
+        formErrors.role.msg = '';
+    }
+
+    if (!file.value) {
+        formErrors.file.type = true;
+        formErrors.file.msg = 'profile photo is required';
+        isError = true;
+    } else {
+        formErrors.file.type = null;
+        formErrors.file.msg = '';
     }
 
     return !isError
@@ -380,13 +363,14 @@ const meta = ref({});
 const page = ref(1);
 const limit = ref(10);
 
-const LoadAllUsers = async () => {
+const LoadAll = async () => {
     loading.value = true;
     try {
         const { data } = await api.get('/user', {
             params: { 
                 Page: page.value, 
-                Limit: limit.value 
+                Limit: limit.value,
+                Filter: filter.value
             }
         });
         users.value = data.Data
@@ -401,74 +385,65 @@ const LoadAllUsers = async () => {
 const NextPage = () => {
      if (page.value < meta.value.TotalPages) {
         page.value++
-        LoadAllUsers()
+        LoadAll()
     }
 }
 
 const PreviousPage = () => {
     if (page.value > 1) {
         page.value--
-        LoadAllUsers()
+        LoadAll()
     }
 }
 
-const filteredData = computed(() => {
-
-    let data = users.value
-
-    if (filter.value) {
-        data = data.filter(v =>
-            v.name.toLowerCase().includes(filter.value.toLowerCase()) ||
-            v.code.toLowerCase().includes(filter.value.toLowerCase())
-        )
+const FirstPage = () => {
+    if (page.value > 1) {
+        page.value = 1
+        LoadAll()
     }
+}
 
-    return data.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-})
-
-const LimitCharacter = (str) => {
-    if (str.length <= 6) return str; // too short to mask
-
-    const first = str.slice(0, 3);
-    const last = str.slice(-3);
-    const masked = "*".repeat(str.length - 6);
-
-    return first + masked + last;
+const LastPage = () => {
+    if (page.value < meta.value.TotalPages) {
+        page.value = meta.value.TotalPages
+        LoadAll()
+    }
 }
 
 const ResetForm = () => {
-    errors.value = [];
     firstname.value = '';
     lastname.value = '';
+    officeId.value = '';
     username.value = '';
     password.value = '';
-    roleId.value = '';
-    officeId.value = '';
-    avatar.value = '';
+    role.value = '';
+    file.value = null;
     formErrors.firstname.type = null;
     formErrors.lastname.type = null;
+    formErrors.officeId.type = null;
     formErrors.username.type = null;
     formErrors.password.type = null;
-    formErrors.roleId.type = null;
-    formErrors.officeId.type = null;
-    formErrors.avatar.type = null;
+    formErrors.role.type = null;
+    formErrors.file.type = null;
 }
 
 const Create = async () => {
     if (!formValidations()) return;
     innerLoading.value = true;
     try {
-        const response = await api.post(`/user`, {
-            firstname: firstname.value,
-            lastname: lastname.value,
-            username: username.value,
-            password: password.value,
-            roleId: roleId.value,
-            officeId: officeId.value,
-            avatar: avatar.value
+        const form = new FormData();
+        form.append("firstname", firstname.value);
+        form.append("lastname", lastname.value);
+        form.append("officeId", officeId.value);
+        form.append("username", username.value);
+        form.append("password", password.value);
+        form.append("role", role.value);
+        form.append("file", file.value);
+        const response = await api.post(`/user`, form, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
         });
-        ResetForm();
-        modal.value = false;
         Toast.fire({
             icon: "success",
             html: `
@@ -476,11 +451,13 @@ const Create = async () => {
                 <div class="text-caption; text-capitalize;">${response.data.Message}<div>
             `
         });
-        users.value.push(response.data.Data);
+        (users.value.length ? (users.value.push(response.data.Data)) : LoadAll());
     } catch (e) {
-        errors.value = [];
-        errors.value = e.response.data.errors;
+        errors.value = e.response.data.errors || [];
     } finally {
+        LoadAll();
+        ResetForm();
+        modal.value = false;
         innerLoading.value = false;
     }
 }
@@ -490,9 +467,8 @@ const Modify = async (data) => {
     firstname.value = data.firstname;
     lastname.value = data.lastname;
     username.value = data.username;
-    roleId.value = data.roleId;
-    officeId.value = data.officeId;
-    avatar.value = data.avatar;
+    officeId.value = Number(data.officeId);
+    role.value = data.role;
 }
 
 const Update = async () => {
@@ -502,14 +478,11 @@ const Update = async () => {
         const response = await api.post(`/user/${id.value}/update`, {
             firstname: firstname.value,
             lastname: lastname.value,
+            officeId: officeId.value,
             username: username.value,
             password: password.value,
-            roleId: roleId.value,
-            officeId: officeId.value,
-            avatar: avatar.value
+            role: role.value
         });
-        ResetForm();
-        modal.value = false;
         Toast.fire({
             icon: "success",
             html: `
@@ -519,17 +492,19 @@ const Update = async () => {
         });
         UpdateList(response.data.Data);
     } catch (e) {
-        errors.value = [];
-        errors.value = e.response.data.errors;
+        errors.value = e.response.data.errors || [];
     } finally {
+        LoadAll();
+        ResetForm();
+        modal.value = false;
         innerLoading.value = false;
     }
 }
 
 const UpdateList = async (data) => {
-    const index = users.value.findIndex(item => item.id === data.id)
+    const index = items.value.findIndex(item => item.id === data.id)
     if (index !== -1) {
-        users.value[index] = data
+        items.value[index] = data
     }
 }
 
@@ -544,11 +519,10 @@ const Disable = async (data) => {
                 <div class="text-caption; text-capitalize;">${response.data.Message}<div>
             `
         });
-        UpdateList(response.data.Data);
     } catch (e) {
-        errors.value = [];
-        errors.value = e.response.data.errors;
+        errors.value = e.response.data.errors || [];
     } finally {
+        LoadAll();
         btnLoading.value = false;
     }
 }
@@ -564,77 +538,114 @@ const Enable = async (data) => {
                 <div class="text-caption; text-capitalize;">${response.data.Message}<div>
             `
         });
-        UpdateList(response.data.Data);
     } catch (e) {
-        errors.value = [];
-        errors.value = e.response.data.errors;
+        errors.value = e.response.data.errors || [];
     } finally {
         btnLoading.value = false;
+        LoadAll();
     }
 }
 
-const roles = ref([]);
+// --- State ---
+const roles = ref([
+    {
+        value: 'admin',
+        label: 'Administrator'
+    },
+    {
+        value: 'supervisor',
+        label: 'Supervisor'
+    },
+    {
+        value: 'collector',
+        label: 'Collection Officer'
+    },
+    {
+        value: 'biller',
+        label: 'Billing Officer'
+    },
+    {
+        value: 'auditor',
+        label: 'Auditor'
+    }
+]);
 const offices = ref([]);
-const filteredRoles = ref(roles.value);
-const filteredOffices = ref(offices.value);
 
-const LoadRoles = async () => {
+const filteredOffices = ref([]);
+
+// --- Generic Loader ---
+const LoadOptions = async (endpoint, target, filteredTarget) => {
     try {
-        const response = await api.get('/option/role');
-        roles.value = response.data;
+        const response = await api.get(`/option/${endpoint}`);
+
+        // normalize: ensure label/value exist + value is numeric
+        const normalized = response.data.map(item => ({
+            label: item.label,
+            value: Number(item.value)
+        }));
+
+        target.value = normalized;
+        filteredTarget.value = normalized;   // <-- IMPORTANT
+
     } catch (error) {
-        console.error("Error fetching roles:", error);
-    } finally {
-
+        console.error(`Error loading ${endpoint}:`, error);
     }
-}
+};
 
-const LoadOffices = async () => {
-    try {
-        const response = await api.get('/option/office');
-        offices.value = response.data;
-    } catch (error) {
-        console.error("Error fetching offices:", error);
-    } finally {
 
-    }
-}
+// Usage
+const LoadOffices = () => LoadOptions('office', offices, filteredOffices);
 
-const filterRoleFn = (val, update) => {
-    if (val === '') {
+// --- Generic Filter Function ---
+const createFilterFn = (source, filtered) => {
+    return (val, update) => {
         update(() => {
-            filteredRoles.value = roles.value
-        })
-        return
-    }
-    update(() => {
-        const needle = val.toLowerCase()
-        filteredRoles.value = roles.value.filter(v =>
-            v.label.toLowerCase().includes(needle)
-        )
-    })
-}
+            if (!val) {
+                filtered.value = source.value;
+            } else {
+                const needle = val.toLowerCase();
+                filtered.value = source.value.filter(v =>
+                    v.label.toLowerCase().includes(needle)
+                );
+            }
+        });
+    };
+};
 
-const filterOfficeFn = (val, update) => {
-    if (val === '') {
-        update(() => {
-            filteredOffices.value = offices.value
-        })
-        return
-    }
-    update(() => {
-        const needle = val.toLowerCase()
-        filteredOffices.value = offices.value.filter(v =>
-            v.label.toLowerCase().includes(needle)
-        )
-    })
-}
+// Usage
+const filterOfficeFn = createFilterFn(offices, filteredOffices);
 
 onMounted(() => {
-    LoadAllUsers();
-    LoadRoles();
+    LoadAll();
     LoadOffices();
 })
+
+const formatName = (user) => {
+    if (!user) return "";
+    const first = user.firstname || "";
+    const last = user.lastname || "";
+    const fullName = `${first} ${last}`.trim();
+    return fullName;
+};
+
+const formatOffice = (user) => {
+    if (!user) return "";
+    const alias = user.Office?.alias || "";
+    return alias;
+};
+
+const roleMap = {
+    admin: "Administrator",
+    supervisor: "Supervisor",
+    collector: "Collection Officer",
+    biller: "Billing Officer",
+    auditor: "Auditor"
+};
+
+const formatRole = (user) => {
+    return roleMap[user.role] || "Unknown Role";
+};
+
 
 </script>
 

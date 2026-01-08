@@ -32,7 +32,7 @@
                     </q-card>
                 </div>
                 <div
-                    v-if="!loading && !paymentreceipts.length"
+                    v-if="!loading && !positions.length"
                     class="card-anim-wrapper"
                     :style="{ animationDelay: `120ms` }"
                 >
@@ -40,14 +40,14 @@
                         class="card card-hover-animate flex flex-center q-pa-md radius-sm"
                     >
                         <q-card-section class="text-center">
-                            <div class="text-caption text-grey text-capitalize">no data found</div>
+                            <div class="text-caption text-capitalize">no data found</div>
                         </q-card-section>
                     </q-card>
                 </div>
                 <div
-                    v-if="!loading && paymentreceipts.length"
-                    v-for="(data, index) in paymentreceipts"
-                    :key="`data-${data.id}`"
+                    v-if="!loading && positions.length"
+                    v-for="(v, index) in positions"
+                    :key="`data-${v.id}`"
                     class="card-anim-wrapper"
                     :style="{ animationDelay: `${index * 120}ms` }"
                 >
@@ -55,19 +55,20 @@
                         class="card card-hover-animate flex flex-center q-pa-md radius-sm"
                         >
                         <q-card-section class="text-center">
-                            <div class="text-body1 text-uppercase">{{ data.name }}</div>
+                            <div class="text-body1 text-uppercase">{{ v.name }}</div>
                         </q-card-section>
-                        <div class="card-overlay absolute-full flex flex-center text-white">
+                        <div class="card-overlay absolute-full flex flex-center text-white full-width">
                             <div class="q-gutter-xs">
-                                <q-btn v-if="data.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(data) }"/>
-                                <q-btn v-if="data.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(data)"/>
-                                <q-btn v-if="!data.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(data)"/>
+                                <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
+                                <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="details" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
+                                <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
+                                <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
                             </div>
                         </div>
                         <div
                             class="absolute-top-left q-ma-sm"
                             style="width: 7px; height: 7px; border-radius: 50%;"
-                            :class="data.isActive ? 'bg-positive' : 'bg-negative'"
+                            :class="v.isActive ? 'bg-positive' : 'bg-negative'"
                         ></div>
                     </q-card>
                 </div>
@@ -78,7 +79,7 @@
                 <q-toolbar-title class="text-caption text-uppercase">
                     <div>© 2025 UNIPAY. All Rights Reserved.</div>
                 </q-toolbar-title>
-                <q-input outlined dense debounce="1000" v-model="filter" placeholder="Search..." @update:model-value="LoadAll">
+                <q-input outlined dense debounce="1000" v-model="filter" placeholder="Search..." @update:model-value="LoadAllPositions">
                     <template v-slot:before>
                         <div class="text-caption text-uppercase">{{ `page ${meta.CurrentPage} of ${meta.TotalPages}` }}</div>
                     </template>
@@ -105,16 +106,16 @@
         <q-dialog persistent v-model="modal" full-height>
             <q-card class="column full-height" style="width: 75%; max-width: 100vw;">
                 <q-card-section class="row items-center q-pa-lg">
-                    <div class="text-h5 text-uppercase">{{ isEdit ? 'modify payment receipt' : 'create new payment receipt' }}</div>
+                    <div class="text-h5 text-uppercase">{{ isEdit ? 'modify position' : 'create new position' }}</div>
                 </q-card-section>
                 <q-separator inset/>
                 <q-card-section class="col scroll">
                     <div class="row q-col-gutter-xs">
                         <div class="col-3">
-                            <div class="text-caption text-uppercase" :class="formErrors.name.type ? 'text-negative' : 'text-grey'">{{ formErrors.name.type ? formErrors.name.msg : 'receipt name' }}</div>
+                            <div class="text-caption text-uppercase" :class="formErrors.name.type ? 'text-negative' : 'text-grey'">{{ formErrors.name.type ? formErrors.name.msg : 'position' }}</div>
                             <q-input 
+                                label="Enter Position Name"
                                 v-model="name"
-                                label="Enter Payment Receipt Name"
                                 outlined 
                                 :error="formErrors.name.type"
                                 no-error-icon
@@ -153,9 +154,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { usePreferenceStore } from 'src/stores/preference-store';
 import { api } from 'src/boot/axios';
 import { Toast } from 'src/boot/sweetalert'; 
-import { useQuasar } from 'quasar'
 
-const $q = useQuasar()
 const PreferenceStore = usePreferenceStore();
 
 const id = ref('');
@@ -169,20 +168,22 @@ const errors = ref([]);
 const formErrors = reactive({
     name: { 
         type: null, msg: ''
-    }
+    },
 });
 
 const formValidations = () => {
+
+    errors.value = [];
 
     let isError = false;
 
     if (!name.value) {
         formErrors.name.type = true;
-        formErrors.name.msg = 'receipt name is required';
+        formErrors.name.msg = 'position name is required';
         isError = true
     } else {
-        formErrors.name.type = null
-        formErrors.name.msg = ''
+        formErrors.name.type = null;
+        formErrors.name.msg = '';
     }
 
     return !isError
@@ -196,47 +197,61 @@ const filter = ref('');
 
 const loading = ref(false);
 
-const paymentreceipts = ref([]);
+const positions = ref([]);
 const meta = ref({});
 const page = ref(1);
 const limit = ref(10);
 
-const LoadAll = async () => {
+const LoadAllPositions = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/paymentreceipt', {
+        const { data } = await api.get('/position', {
             params: { 
                 Page: page.value, 
                 Limit: limit.value,
                 Filter: filter.value
             }
         });
-        paymentreceipts.value = data.Data
+        positions.value = data.Data
         meta.value = data.Meta
     } catch (error) {
-        console.error("Error fetching all payment receipts:", error);
+        console.error("Error fetching all positions:", error);
     } finally {
         loading.value = false
     }
 }
 
 const NextPage = () => {
-     if (page.value < meta.value.TotalPages) {
+    if (page.value < meta.value.TotalPages) {
         page.value++
-        LoadAll()
+        LoadAllPositions()
     }
 }
 
 const PreviousPage = () => {
     if (page.value > 1) {
         page.value--
-        LoadAll()
+        LoadAllPositions()
+    }
+}
+
+const FirstPage = () => {
+    if (page.value > 1) {
+        page.value = 1
+        LoadAllPositions()
+    }
+}
+
+const LastPage = () => {
+    if (page.value < meta.value.TotalPages) {
+        page.value = meta.value.TotalPages
+        LoadAllPositions()
     }
 }
 
 const filteredData = computed(() => {
 
-    let data = paymentreceipts.value.slice()
+    let data = positions.value.slice()
 
     // always sort by createdAt (latest first)
     data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -262,7 +277,7 @@ const Create = async () => {
     if (!formValidations()) return;
     innerLoading.value = true;
     try {
-        const response = await api.post(`/paymentreceipt`, {
+        const response = await api.post(`/position`, {
             name: name.value
         });
         ResetForm();
@@ -274,7 +289,7 @@ const Create = async () => {
                 <div class="text-caption; text-capitalize;">${response.data.Message}<div>
             `
         });
-        paymentreceipts.value.push(response.data.Data);
+        positions.value.push(response.data.Data);
     } catch (e) {
         errors.value = e.response.data.errors || [];
     } finally {
@@ -291,7 +306,7 @@ const Update = async () => {
     if (!formValidations()) return;
     innerLoading.value = true;
     try {
-        const response = await api.post(`/paymentreceipt/${id.value}/update`, {
+        const response = await api.post(`/position/${id.value}/update`, {
             name: name.value
         });
         ResetForm();
@@ -312,16 +327,16 @@ const Update = async () => {
 }
 
 const UpdateList = async (data) => {
-    const index = paymentreceipts.value.findIndex(item => item.id === data.id)
+    const index = positions.value.findIndex(item => item.id === data.id)
     if (index !== -1) {
-        paymentreceipts.value[index] = data
+        positions.value[index] = data
     }
 }
 
 const Disable = async (data) => {
     btnLoading.value = true;
     try {
-        const response = await api.post(`/paymentreceipt/${data.id}/disable`);
+        const response = await api.post(`/position/${data.id}/disable`);
         Toast.fire({
             icon: "success",
             html: `
@@ -340,7 +355,7 @@ const Disable = async (data) => {
 const Enable = async (data) => {
     btnLoading.value = true;
     try {
-        const response = await api.post(`/paymentreceipt/${data.id}/enable`);
+        const response = await api.post(`/position/${data.id}/enable`);
         Toast.fire({
             icon: "success",
             html: `
@@ -357,7 +372,7 @@ const Enable = async (data) => {
 }
 
 onMounted(() => {
-    LoadAll();
+    LoadAllPositions();
 })
 
 </script>

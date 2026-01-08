@@ -1,6 +1,16 @@
 <template>
-    <div>
-        <div class="q-mt-md">
+    <div class="wrapper q-mt-md">
+        <div class="q-gutter-xs">
+            <q-btn
+                v-for="(btn, index) in navs"
+                unelevated
+                :class="PreferenceStore.component === `${btn.component}` ? 'bg-primary text-white' : 'bg-accent'"
+                @click="PreferenceStore.component = `${btn.component}`"
+                size="sm"
+                :label="btn.label"
+            />
+        </div>
+        <div class="q-my-xl">
             <component :is="components[PreferenceStore.component]" :key="PreferenceStore.component" />
         </div>
     </div>
@@ -26,6 +36,7 @@ import TypeFormSettingComponent from 'src/components/Preference/TypeFormSettingC
 import UserComponent from 'src/components/Preference/UserComponent.vue';
 import UserWindowSettingComponent from 'src/components/Preference/UserWindowSettingComponent.vue';
 import WindowComponent from 'src/components/Preference/WindowComponent.vue';
+import PaymentSettingComponent from 'src/components/Preference/PaymentSettingComponent.vue';
 
 const PreferenceStore = usePreferenceStore();
 
@@ -46,13 +57,35 @@ const components = {
     TypeFormSettingComponent,
     UserComponent,
     UserWindowSettingComponent,
-    WindowComponent
+    WindowComponent,
+    PaymentSettingComponent
 };
 
+const navs = [
+    { component: 'UserComponent', label: 'User' },
+    { component: 'OfficeComponent', label: 'Office' },
+    { component: 'PositionComponent', label: 'Position' },
+    { component: 'SystemComponent', label: 'System' },
+    { component: 'AccountComponent', label: 'Account' },
+    { component: 'FundComponent', label: 'Fund' },
+    { component: 'PaymentChannelComponent', label: 'Payment Channel' },
+    { component: 'PaymentReceiptComponent', label: 'Payment Receipt' },
+    { component: 'PaymentPartnerComponent', label: 'Payment Partner' },
+    { component: 'PaymentTypeComponent', label: 'Payment Type' },
+    // { component: 'PaymentSettingComponent', label: 'Payment Setting' },
+    { component: 'ServiceComponent', label: 'Revenue Service' },
+    { component: 'ItemComponent', label: 'Revenue Item' },
+
+    { component: 'TypeFormSettingComponent', label: 'Type | Form Setting' },
+    { component: 'ServiceItemSettingComponent', label: 'Service | Item Setting' },
+    { component: 'WindowComponent', label: 'Window' },
+    { component: 'UserWindowSettingComponent', label: 'User | Window Setting' },
+]
+
 onMounted(() => {
-    if (PreferenceStore.component == null || PreferenceStore.component == '') {
-        PreferenceStore.component = 'PreferenceComponent';
-    }
+    // if (PreferenceStore.component == null || PreferenceStore.component == '') {
+    //     PreferenceStore.component = 'PreferenceComponent';
+    // }
 });
 </script>
 

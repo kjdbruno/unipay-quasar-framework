@@ -1,126 +1,179 @@
 <template>
     <div>
-        <q-card class="no-shadow">
-            <q-card-section>
-                <div class="row items-center no-wrap justify-between">
-                    <div class="row items-center">
-                        <q-btn flat round dense icon="arrow_back" size="sm" class="text-dark" @click="PreferenceStore.component = 'PreferenceComponent'"/>
-                        <span class="text-h5 text-dark text-uppercase q-ml-sm">account management</span>
-                    </div>
-                    <div class="col-auto">
-                        <q-input outlined dense debounce="300" v-model="filter" placeholder="Search...">
-                            <template v-slot:before>
-                                <q-btn :disable="page <= 1" @click="PreviousPage" unelevated size="xs" round color="primary" icon="arrow_back"/>
-                                <q-btn unelevated outline size="sm" round color="primary" :label="meta.CurrentPage"/>
-                                <q-btn :disable="page >= meta.TotalPages" @click="NextPage" unelevated size="xs" round color="primary" icon="arrow_forward"/>
-                            </template>
-                            <template v-slot:prepend>
-                                <q-icon name="search" style="font-size: 1rem;" />
-                            </template>
-                            <template v-slot:after>
-                                <q-btn unelevated size="md" color="primary" label="new" @click="() => { modal = true; isEdit = false; ResetForm() }"/>
-                            </template>
-                        </q-input>
-                    </div>
-                </div>
-            </q-card-section>
-        </q-card>
         <div class="q-mt-md">
-            <transition-group name="fade-slide" tag="div" class="q-gutter-md row q-col-gutter-md">
-                <q-card v-for="(v, index) in filteredData" :key="index" class="card card-hover-animate custom-border col-xs-12 col-sm-4 col-md-3 col-lg-3 flex flex-center q-pa-md no-shadow cursor-pointer radius-xs">
-                    <q-card-section class="text-center">
-                        <div class="text-body1 text-uppercase text-bold">{{ v.code }}</div>
-                        <div class="text-caption text-capitalize">{{ v.title }}</div>
-                    </q-card-section>
-                    <q-card-section class="text-center">
-                        <div class="text-caption text-grey">
-                            {{ v.balance }}
-                        </div>
-                    </q-card-section>
-                    <div class="card-overlay absolute-full flex flex-center text-white">
-                        <div class="q-gutter-xs">
-                            <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
-                            <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
-                            <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
-                        </div>
-                    </div>
-                    <div
-                        class="absolute-top-right q-mt-sm q-mr-sm"
-                        style="width: 6px; height: 6px; border-radius: 50%;"
-                        :style="{ backgroundColor: v.isActive ? 'green' : 'red' }"
+            <div class="card-grid">
+                <div
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm cursor-pointer"
+                        @click="() => { modal = true; isEdit = false; ResetForm() }"
+                    >
+                        <q-card-section class="text-center">
+                            <q-icon name="add_circle" size="7em" class="text-grey-5" />
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="loading"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div>
+                                <q-spinner-puff size="md" />
+                            </div>
+                            <div class="text-caption text-grey text-capitalize">we're working on it</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && !accounts.length"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div class="text-caption text-grey text-capitalize">no data found</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && accounts.length"
+                    v-for="(v, index) in accounts"
+                    :key="`data-${v.id}`"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `${index * 120}ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
                         >
-                    </div>
-                    <q-inner-loading :showing="btnLoading">
-                        <q-spinner-oval/>
-                    </q-inner-loading>
-                </q-card>
-            </transition-group>
+                        <q-card-section class="text-center full-width">
+                            <div class="text-body1 text-uppercase">{{ v.code }}</div>
+                            <div class="text-caption text-capitalize">{{ v.title }}</div>
+                        </q-card-section>
+                        <q-card-section class="text-center full-width">
+                            <div class="text-caption text-grey">
+                                {{ v.balance }}
+                            </div>
+                        </q-card-section>
+                        <div class="card-overlay absolute-full flex flex-center text-white">
+                            <div class="q-gutter-xs">
+                                <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
+                                <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
+                                <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute-top-left q-ma-sm"
+                            style="width: 7px; height: 7px; border-radius: 50%;"
+                            :class="v.isActive ? 'bg-positive' : 'bg-negative'"
+                        ></div>
+                    </q-card>
+                </div>
+            </div>
         </div>
-        <q-dialog square persistent v-model="modal" position="right" full-height class="dialog-action">
-            <q-card class="card-action column full-height">
+        <q-footer class="bg-white no-shadow q-mx-lg q-mb-md q-py-sm radius-xs text-grey">
+            <q-toolbar>
+                <q-toolbar-title class="text-caption text-uppercase">
+                    <div>© 2025 UNIPAY. All Rights Reserved.</div>
+                </q-toolbar-title>
+                <q-input outlined dense debounce="1000" v-model="filter" placeholder="Search..." @update:model-value="LoadAll">
+                    <template v-slot:before>
+                        <div class="text-caption text-uppercase">{{ `page ${meta.CurrentPage} of ${meta.TotalPages}` }}</div>
+                    </template>
+                    <template v-slot:after>
+                        <q-btn unelevated size="xs" round color="primary" icon="first_page" :disable="page <= 1" @click="FirstPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">First Page</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_back" :disable="page <= 1" @click="PreviousPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Previous</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_forward" :disable="page >= meta.TotalPages" @click="NextPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Next</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="last_page" :disable="page >= meta.TotalPages" @click="LastPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Last Page</q-tooltip>
+                        </q-btn>
+                    </template>
+                    <template v-slot:prepend>
+                        <q-icon name="search" style="font-size: 1rem;" />
+                    </template>
+                </q-input>
+            </q-toolbar>
+        </q-footer>
+        <q-dialog persistent v-model="modal" full-height>
+            <q-card class="column full-height" style="width: 75%; max-width: 100vw;">
                 <q-card-section class="row items-center q-pa-lg">
                     <div class="text-h5 text-uppercase">{{ isEdit ? 'modify account' : 'create new account' }}</div>
-                <q-space />
-                    <q-btn icon="close" flat round dense v-close-popup />
                 </q-card-section>
                 <q-separator inset/>
-                <q-card-section class="col">
-                    <q-input 
-                        v-model="code"
-                        outlined 
-                        label="Account Code" 
-                        :error="formErrors.code.type"
-                        class="q-mb-xs"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="title"
-                        outlined 
-                        label="Title" 
-                        :error="formErrors.title.type"
-                        class="q-mb-xs"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="description"
-                        outlined 
-                        label="Description" 
-                        :error="formErrors.description.type"
-                        autogrow
-                        class="q-mb-xs"
-                    >
-                    </q-input>
-                    <div class="q-gutter-md">
+                <q-card-section class="col scroll">
+                    <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-2">
+                            <div class="text-caption text-uppercase" :class="formErrors.code.type ? 'text-negative' : 'text-grey'">{{ formErrors.code.type ? formErrors.code.msg : 'account code' }}</div>
+                            <q-input 
+                                v-model="code"
+                                label="Enter Account Code"
+                                outlined
+                                :error="formErrors.code.type"
+                                no-error-icon
+                            />
+                        </div>
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.title.type ? 'text-negative' : 'text-grey'">{{ formErrors.title.type ? formErrors.title.msg : 'account title' }}</div>
+                            <q-input 
+                                v-model="title"
+                                label="Enter Account Title"
+                                outlined 
+                                :error="formErrors.title.type"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                    </div>
+                    <div class="row q-col-gutter-xs q-mb-md">
+                        <div class="col-5">
+                            <div class="text-caption text-uppercase" :class="formErrors.description.type ? 'text-negative' : 'text-grey'">{{ formErrors.description.type ? formErrors.description.msg : 'account description' }}</div>
+                            <q-input 
+                                v-model="description"
+                                label="Enter Account Description"
+                                outlined 
+                                :error="formErrors.description.type"
+                                no-error-icon
+                                type="textarea"
+                            />
+                        </div>
+                    </div>
+                    <div class="">
+                        <div class="text-caption text-uppercase" :class="formErrors.balance.type ? 'text-negative' : 'text-grey'">{{ formErrors.balance.type ? formErrors.balance.msg : 'account balance' }}</div>
                         <q-radio v-model="balance" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="Credit" label="Credit" />
                         <q-radio v-model="balance" checked-icon="task_alt" unchecked-icon="panorama_fish_eye" val="Debit" label="Debit" />
                     </div>
                 </q-card-section>
-                <q-card-section v-if="errors.length">
-                    <q-banner class="bg-red-1 text-negative rounded-lg shadow-md radius-xs q-pa-sm q-mt-md" dense inline-actions >
-                        <q-list>
-                            <q-item>
-                                <q-item-section avatar>
-                                    <q-icon name="error" color="negative"/>
-                                </q-item-section>
-                                <q-item-section>
-                                    <div v-for="(dt, index) in errors" :key="index" class="text-caption">
-                                        {{ dt.msg }}
-                                    </div>
-                                </q-item-section>
-                            </q-item>
-                        </q-list>
-                    </q-banner>
-                </q-card-section>
-                <q-card-section>
+                <q-card-actions class="q-pa-md">
                     <q-btn 
                         unelevated 
                         color="primary" 
-                        label="submit" 
-                        size="lg" 
-                        class="full-width"
+                        label="save" 
+                        class="btn"
                         @click="isEdit ? Update() : Create()"
                     />
-                </q-card-section>
+                    <q-btn 
+                        unelevated 
+                        outline
+                        color="primary" 
+                        label="discard" 
+                        class="btn"
+                        @click="() => { modal = false; }"
+                    />
+                </q-card-actions>
                 <q-inner-loading :showing="innerLoading">
                     <q-spinner-oval/>
                 </q-inner-loading>
@@ -150,16 +203,16 @@ const errors = ref([]);
 
 const formErrors = reactive({
     code: { 
-        type: null 
+        type: null, msg: '' 
     },
     title: { 
-        type: null 
+        type: null, msg: '' 
     },
     description: {
-        type: null
+        type: null, msg: ''
     },
     balance: {
-        type: null
+        type: null, msg: ''
     }
 });
 
@@ -170,83 +223,39 @@ const formValidations = () => {
     let isError = false;
 
     if (!code.value) {
-
         formErrors.code.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: code.value,
-            msg: 'This field is required',
-            path: 'code',
-            location: 'body'
-        });
-
+        formErrors.code.msg = 'account code is required'
         isError = true
-
     } else {
-        
-        formErrors.code.type = null
-
+        formErrors.code.type = null;
+        formErrors.code.msg = '';
     }
 
     if (!title.value) {
-
         formErrors.title.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: title.value,
-            msg: 'This field is required',
-            path: 'title',
-            location: 'body'
-        });
-
+        formErrors.title.msg = 'account title is required';
         isError = true
-
     } else {
-        
         formErrors.title.type = null
-        
+        formErrors.title.msg = '';
     }
 
     if (!description.value) {
-
         formErrors.description.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: description.value,
-            msg: 'This field is required',
-            path: 'description',
-            location: 'body'
-        });
-
+        formErrors.description.msg = 'account description is required';
         isError = true
-
     } else {
-        
         formErrors.description.type = null
-        
+        formErrors.description.msg = '';
     }
 
     if (!balance.value) {
-
         formErrors.balance.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: balance.value,
-            msg: 'This field is required',
-            path: 'balance',
-            location: 'body'
-        });
-
+        formErrors.balance.msg = 'account balance is required';
         isError = true
-
     } else {
-        
         formErrors.balance.type = null
-        
+        formErrors.balance.msg = '';
     }
 
     return !isError
@@ -271,7 +280,8 @@ const LoadAll = async () => {
         const { data } = await api.get('/account', {
             params: { 
                 Page: page.value, 
-                Limit: limit.value 
+                Limit: limit.value,
+                Filter: filter.value
             }
         });
         accounts.value = data.Data
@@ -306,8 +316,8 @@ const filteredData = computed(() => {
 
     if (filter.value) {
         data = data.filter(v =>
-            v.name.toLowerCase().includes(filter.value.toLowerCase()) ||
-            v.alias.toLowerCase().includes(filter.value.toLowerCase())
+            v.title.toLowerCase().includes(filter.value.toLowerCase()) ||
+            v.code.toLowerCase().includes(filter.value.toLowerCase())
         ).slice(0, 5)
     }
 

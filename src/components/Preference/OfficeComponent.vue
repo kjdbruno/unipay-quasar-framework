@@ -1,121 +1,171 @@
 <template>
     <div>
-        <q-card class="no-shadow">
-            <q-card-section>
-                <div class="row items-center no-wrap justify-between">
-                    <div class="row items-center">
-                        <q-btn flat round dense icon="arrow_back" size="sm" class="text-dark" @click="PreferenceStore.component = 'PreferenceComponent'"/>
-                        <span class="text-h5 text-dark text-uppercase q-ml-sm">office management</span>
-                    </div>
-                    <div class="col-auto">
-                        <q-input outlined dense debounce="300" v-model="filter" placeholder="Search...">
-                            <template v-slot:before>
-                                <q-btn :disable="page <= 1" @click="PreviousPage" unelevated size="xs" round color="primary" icon="arrow_back"/>
-                                <q-btn unelevated outline size="sm" round color="primary" :label="meta.CurrentPage"/>
-                                <q-btn :disable="page >= meta.TotalPages" @click="NextPage" unelevated size="xs" round color="primary" icon="arrow_forward"/>
-                            </template>
-                            <template v-slot:prepend>
-                                <q-icon name="search" style="font-size: 1rem;" />
-                            </template>
-                            <template v-slot:after>
-                                <q-btn unelevated size="md" color="primary" label="new" @click="() => { modal = true; isEdit = false; ResetForm() }"/>
-                            </template>
-                        </q-input>
-                    </div>
-                </div>
-            </q-card-section>
-        </q-card>
         <div class="q-mt-md">
-            <transition-group name="fade-slide" tag="div" class="q-gutter-md row q-col-gutter-md">
-                <q-card v-for="(v, index) in filteredData" :key="index" class="card card-hover-animate custom-border col-xs-12 col-sm-4 col-md-3 col-lg-3 flex flex-center q-pa-md no-shadow cursor-pointer radius-xs">
-                    <q-card-section class="text-center">
-                        <div class="text-body1 text-uppercase text-bold">{{ v.alias }}</div>
-                        <div class="text-caption text-capitalize">{{ v.name }}</div>
-                    </q-card-section>
-                    <q-card-section class="text-center">
-                        <div class="text-caption text-grey">
-                            {{ v.email }}
-                        </div>
-                    </q-card-section>
-                    <div class="card-overlay absolute-full flex flex-center text-white">
-                        <div class="q-gutter-xs">
-                            <q-btn v-if="v.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(v) }"/>
-                            <q-btn v-if="v.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(v)"/>
-                            <q-btn v-if="!v.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(v)"/>
-                        </div>
-                    </div>
-                    <div
-                        class="absolute-top-right q-mt-sm q-mr-sm"
-                        style="width: 6px; height: 6px; border-radius: 50%;"
-                        :style="{ backgroundColor: v.isActive ? 'green' : 'red' }"
+            <div class="card-grid">
+                <div
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm cursor-pointer"
+                        @click="() => { modal = true; isEdit = false; ResetForm() }"
+                    >
+                        <q-card-section class="text-center">
+                            <q-icon name="add_circle" size="7em" class="text-grey-5" />
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="loading"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div>
+                                <q-spinner-puff size="md" />
+                            </div>
+                            <div class="text-caption text-grey text-capitalize">we're working on it</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && !offices.length"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `120ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
+                    >
+                        <q-card-section class="text-center">
+                            <div class="text-caption text-grey text-capitalize">no data found</div>
+                        </q-card-section>
+                    </q-card>
+                </div>
+                <div
+                    v-if="!loading && offices.length"
+                    v-for="(data, index) in offices"
+                    :key="`data-${data.id}`"
+                    class="card-anim-wrapper"
+                    :style="{ animationDelay: `${index * 120}ms` }"
+                >
+                    <q-card
+                        class="card card-hover-animate flex flex-center q-pa-md radius-sm"
                         >
-                    </div>
-                    <q-inner-loading :showing="btnLoading">
-                        <q-spinner-oval/>
-                    </q-inner-loading>
-                </q-card>
-            </transition-group>
+                        <q-card-section class="text-center">
+                            <div class="text-body1 text-uppercase">{{ data.alias }}</div>
+                            <div class="text-caption text-capitalize">{{ data.name }}</div>
+                        </q-card-section>
+                        <q-card-section class="text-center">
+                            <div class="text-caption text-grey">
+                                {{ data.email }}
+                            </div>
+                        </q-card-section>
+                        <div class="card-overlay absolute-full flex flex-center text-white">
+                            <div class="q-gutter-xs">
+                                <q-btn v-if="data.isActive" unelevated size="xs" color="primary" label="modify" @click="() => { modal = true; isEdit = true; ResetForm(); Modify(data) }"/>
+                                <q-btn v-if="data.isActive" unelevated outline size="xs" color="primary" label="disable" @click="Disable(data)"/>
+                                <q-btn v-if="!data.isActive" unelevated outline size="xs" color="primary" label="enable" @click="Enable(data)"/>
+                            </div>
+                        </div>
+                        <div
+                            class="absolute-top-left q-ma-sm"
+                            style="width: 7px; height: 7px; border-radius: 50%;"
+                            :class="data.isActive ? 'bg-positive' : 'bg-negative'"
+                        ></div>
+                    </q-card>
+                </div>
+            </div>
         </div>
-        <q-dialog square persistent v-model="modal" position="right" full-height class="dialog-action">
-            <q-card class="card-action column full-height">
+        <q-footer class="bg-white no-shadow q-mx-lg q-mb-md q-py-sm radius-xs text-grey">
+            <q-toolbar>
+                <q-toolbar-title class="text-caption text-uppercase">
+                    <div>© 2025 UNIPAY. All Rights Reserved.</div>
+                </q-toolbar-title>
+                <q-input outlined dense debounce="1000" v-model="filter" placeholder="Search..." @update:model-value="LoadAllOffices">
+                    <template v-slot:before>
+                        <div class="text-caption text-uppercase">{{ `page ${meta.CurrentPage} of ${meta.TotalPages}` }}</div>
+                    </template>
+                    <template v-slot:after>
+                        <q-btn unelevated size="xs" round color="primary" icon="first_page" :disable="page <= 1" @click="FirstPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">First Page</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_back" :disable="page <= 1" @click="PreviousPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Previous</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="arrow_forward" :disable="page >= meta.TotalPages" @click="NextPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Next</q-tooltip>
+                        </q-btn>
+                        <q-btn unelevated size="xs" round color="primary" icon="last_page" :disable="page >= meta.TotalPages" @click="LastPage">
+                            <q-tooltip anchor="top middle" self="top middle" transition-show="scale" transition-hide="scale" class="text-capitalize">Last Page</q-tooltip>
+                        </q-btn>
+                    </template>
+                    <template v-slot:prepend>
+                        <q-icon name="search" style="font-size: 1rem;" />
+                    </template>
+                </q-input>
+            </q-toolbar>
+        </q-footer>
+        <q-dialog persistent v-model="modal" full-height>
+            <q-card class="column full-height" style="width: 75%; max-width: 100vw;">
                 <q-card-section class="row items-center q-pa-lg">
                     <div class="text-h5 text-uppercase">{{ isEdit ? 'modify office' : 'create new office' }}</div>
-                <q-space />
-                    <q-btn icon="close" flat round dense v-close-popup />
                 </q-card-section>
                 <q-separator inset/>
-                <q-card-section class="col">
-                    <q-input 
-                        v-model="name"
-                        outlined 
-                        label="Office Name" 
-                        :error="formErrors.name.type"
-                        class="q-mb-xs"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="alias"
-                        outlined 
-                        label="Office Alias" 
-                        :error="formErrors.alias.type"
-                        class="q-mb-xs"
-                    >
-                    </q-input>
-                    <q-input 
-                        v-model="email"
-                        outlined 
-                        label="Office Email" 
-                        :error="formErrors.email.type"
-                        class="q-mb-xs"
-                    >
-                    </q-input>
+                <q-card-section class="col scroll">
+                    <div class="row q-col-gutter-xs">
+                        <div class="col-2">
+                            <div class="text-caption text-uppercase" :class="formErrors.alias.type ? 'text-negative' : 'text-grey'">{{ formErrors.alias.type ? formErrors.alias.msg : 'office alias' }}</div>
+                            <q-input 
+                                v-model="alias"
+                                label="Enter Office Alias"
+                                outlined 
+                                :error="formErrors.alias.type"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                        <div class="col-4">
+                            <div class="text-caption text-uppercase" :class="formErrors.name.type ? 'text-negative' : 'text-grey'">{{ formErrors.name.type ? formErrors.name.msg : 'office name' }}</div>
+                            <q-input 
+                                v-model="name"
+                                label="Enter Office Name"
+                                outlined 
+                                :error="formErrors.name.type"
+                                no-error-icon
+                                class="text-capitalize"
+                            />
+                        </div>
+                        <div class="col-3">
+                            <div class="text-caption text-uppercase" :class="formErrors.email.type ? 'text-negative' : 'text-grey'">{{ formErrors.email.type ? formErrors.email.msg : 'office email' }}</div>
+                            <q-input 
+                                v-model="email"
+                                label="Enter Office Email"
+                                outlined 
+                                :error="formErrors.email.type"
+                            />
+                        </div>
+                    </div>
                 </q-card-section>
-                <q-card-section v-if="errors.length">
-                    <q-banner class="bg-red-1 text-negative rounded-lg shadow-md radius-xs q-pa-sm q-mt-md" dense inline-actions >
-                        <q-list>
-                            <q-item>
-                                <q-item-section avatar>
-                                    <q-icon name="error" color="negative"/>
-                                </q-item-section>
-                                <q-item-section>
-                                    <div v-for="(dt, index) in errors" :key="index" class="text-caption">
-                                        {{ dt.msg }}
-                                    </div>
-                                </q-item-section>
-                            </q-item>
-                        </q-list>
-                    </q-banner>
-                </q-card-section>
-                <q-card-section>
+                <q-card-actions class="q-pa-md">
                     <q-btn 
                         unelevated 
                         color="primary" 
-                        label="submit" 
-                        size="lg" 
-                        class="full-width"
+                        label="save" 
+                        class="btn"
                         @click="isEdit ? Update() : Create()"
                     />
-                </q-card-section>
+                    <q-btn 
+                        unelevated 
+                        outline
+                        color="primary" 
+                        label="discard" 
+                        class="btn"
+                        @click="() => { modal = false; }"
+                    />
+                </q-card-actions>
                 <q-inner-loading :showing="innerLoading">
                     <q-spinner-oval/>
                 </q-inner-loading>
@@ -144,13 +194,13 @@ const errors = ref([]);
 
 const formErrors = reactive({
     name: { 
-        type: null 
+        type: null, msg: ''
     },
     alias: { 
-        type: null 
+        type: null, msg: ''
     },
     email: {
-        type: null
+        type: null, msg: ''
     }
 });
 
@@ -161,77 +211,34 @@ const formValidations = () => {
     let isError = false;
 
     if (!name.value) {
-
         formErrors.name.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: name.value,
-            msg: 'This field is required',
-            path: 'name',
-            location: 'body'
-        });
-
-        isError = true
-
+        formErrors.name.msg = 'office name is required';
+        isError = true;
     } else {
-        
-        formErrors.name.type = null
-
+        formErrors.name.type = null;
+        formErrors.name.msg = '';
     }
 
     if (!alias.value) {
-
         formErrors.alias.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: alias.value,
-            msg: 'This field is required',
-            path: 'alias',
-            location: 'body'
-        });
-
-        isError = true
-
+        formErrors.alias.msg = 'office alias is required';
+        isError = true;
     } else {
-        
         formErrors.alias.type = null
-        
+        formErrors.alias.msg = '';
     }
 
     if (!email.value) {
-
-        formErrors.alias.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: email.value,
-            msg: 'This field is required',
-            path: 'email',
-            location: 'body'
-        });
-
-        isError = true
-
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-
         formErrors.email.type = true;
-
-        errors.value.push({
-            type: 'field',
-            value: email.value,
-            msg: 'Please enter a valid email address',
-            path: 'email',
-            location: 'body'
-        });
-
+        formErrors.email.msg = 'office email is required';
+        isError = true
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        formErrors.email.type = true;
+        formErrors.email.msg = 'email is invalid';
         isError = true;
-
     } else {
-        
         formErrors.email.type = null
-        
+        formErrors.email.msg = '';
     }
 
     return !isError
@@ -256,7 +263,8 @@ const LoadAllOffices = async () => {
         const { data } = await api.get('/office', {
             params: { 
                 Page: page.value, 
-                Limit: limit.value 
+                Limit: limit.value,
+                Filter: filter.value
             }
         });
         offices.value = data.Data
@@ -269,7 +277,7 @@ const LoadAllOffices = async () => {
 }
 
 const NextPage = () => {
-     if (page.value < meta.value.TotalPages) {
+    if (page.value < meta.value.TotalPages) {
         page.value++
         LoadAllOffices()
     }
@@ -278,6 +286,20 @@ const NextPage = () => {
 const PreviousPage = () => {
     if (page.value > 1) {
         page.value--
+        LoadAllOffices()
+    }
+}
+
+const FirstPage = () => {
+    if (page.value > 1) {
+        page.value = 1
+        LoadAllOffices()
+    }
+}
+
+const LastPage = () => {
+    if (page.value < meta.value.TotalPages) {
+        page.value = meta.value.TotalPages
         LoadAllOffices()
     }
 }
